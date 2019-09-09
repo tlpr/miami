@@ -21,7 +21,7 @@ async def dis_react(self, message):
 	contents = message.content
 	if sender == conf["BOT"]["DISCONAME"]:
 		return
-	irc.send_message("#justtestin00", f"{sender}: {contents}")
+	irc.send_message(conf["SERVER"]["CHANNEL"], f"{sender}: {contents}")
 
 miami.react_on_message = irc_react
 miami_disco.on_message = dis_react
