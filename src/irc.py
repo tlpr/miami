@@ -4,13 +4,19 @@
 # This code is licensed under the GNU GPL-3.0-only license
 # https://www.gnu.org/licenses/gpl-3.0.html
 
-import socket, configparser, asyncio
+import socket, configparser, asyncio, ssl
 
 class miami ():
 
 	def __init__(self):
+		self.reload_configuration_ini()
 		self.irc_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.config   = None
+		if self.config["SERVER"]["SSL"]:
+			self.irc_sock = ssl.wrap_socket(
+				self.irc_sock,
+				ssl_version=ssl.PROTOCOL_TLS,
+				ciphers="DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA:ECDHE-ECDSA-AES128-GCM-SHA256"
+			)
 	
 	def console_out_debug(self, message, highlight=False):
 		prefix = "\033[36m\033[1m[IRC]\033[0m "
@@ -30,11 +36,10 @@ class miami ():
 	def set_nickname(self, new_nickname):
 		# Set a new both username and nickname.
 		self.irc_sock.send(bytes(
-			"USER " + new_nickname + " " + new_nickname + " " +
-			new_nickname + " " + new_nickname + "\n", "UTF-8"
+			f"USER {new_nickname} {new_nickname} {new_nickname} {new_nickname}\n", "UTF-8"
 		))
 		self.console_out_debug("NICK " + new_nickname)
-		self.irc_sock.send( bytes("NICK " + new_nickname + "\n", "UTF-8") )
+		self.irc_sock.send( bytes(f"NICK {new_nickname}\n", "UTF-8") )
 
 	def pong(self, quote=False):
 		# Respond to PING to keep alive the connection.
@@ -45,9 +50,15 @@ class miami ():
 			self.irc_sock.send( bytes(f"PONG :{quote}\n", "UTF-8") )
 	
 	def login(self):
+		# Authenticates and sets the +B mode (Bot mode for Canternet), if required information given in the configuration.
 		password = self.config["BOT"]["AUTOLOGIN"]
-		self.console_out_debug("Logging in with " + password)
-		self.send_message("NickServ", f"IDENTIFY {password}")
+		if password:
+			self.console_out_debug("Logging in with " + password)
+			self.send_message("NickServ", f"IDENTIFY {password}")
+		# set +B
+		if int(self.config["BOT"]["BMODE"]):
+			self.console_out_debug("MODE +B")
+			self.irc_sock.send( bytes(f"MODE ${self.config['BOT']['NICKNAME']} +B\n", "UTF-8") )
 	
 	def send_message(self, channel, content):
 		# Sends message to the given target.
@@ -55,14 +66,9 @@ class miami ():
 
 	def connect(self):
 		# Connects to the given server.
+		self.console_out_debug( f"Connecting to {self.config['SERVER']['HOST']}:{self.config['SERVER']['PORT']}" )
 		
-		self.console_out_debug(
-		f"Connecting to {self.config['SERVER']['HOST']}:{self.config['SERVER']['PORT']}"
-		)
-		
-		self.irc_sock.connect((
-			self.config["SERVER"]["HOST"], int(self.config["SERVER"]["PORT"]))
-			)
+		self.irc_sock.connect( (self.config["SERVER"]["HOST"], int(self.config["SERVER"]["PORT"])) )
 			
 		self.set_nickname( self.config["BOT"]["NICKNAME"] )
 		
