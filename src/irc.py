@@ -58,7 +58,7 @@ class miami ():
 		# set +B
 		if int(self.config["BOT"]["BMODE"]):
 			self.console_out_debug("MODE +B")
-			self.irc_sock.send( bytes(f"MODE ${self.config['BOT']['NICKNAME']} +B\n", "UTF-8") )
+			self.irc_sock.send( bytes(f"MODE {self.config['BOT']['NICKNAME']} +B\n", "UTF-8") )
 	
 	def send_message(self, channel, content):
 		# Sends message to the given target.
