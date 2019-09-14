@@ -17,10 +17,14 @@ async def irc_react(self, sender, contents):
 	
 async def dis_react(self, message):
 	# Discord -> IRC
-	sender = message.author.nick if message.author.nick != None else message.author.name 
+	if not message.channel.id == int(conf["BOT"]["DISCOCHAN"]): return # ignore if message comes from different channel
+	sender = message.author.nick if message.author.nick != None else message.author.name
 	contents = message.content
-	if sender == conf["BOT"]["DISCONAME"]:
-		return
+	for attachment in message.attachments:
+		contents += f" {attachment.url}"
+	if len(contents) > 490:
+		contents = contents[:487] + "..."
+	if sender == conf["BOT"]["DISCONAME"]: return
 	irc.send_message(conf["SERVER"]["CHANNEL"], f"{sender}: {contents}")
 
 miami.react_on_message = irc_react
