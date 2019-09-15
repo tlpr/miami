@@ -105,7 +105,7 @@ class miami ():
 		# Loop to receive information and keep the connection alive.
 		try:
 			while True:
-				await asyncio.sleep(1)
+				await asyncio.sleep(0.1)
 				irc_message_encoded = self.irc_sock.recv(4096)
 				accepted_encodings = ["UTF-8", "ISO-8859-1", "CP1251"]
 				decode_successed = False

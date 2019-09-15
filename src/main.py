@@ -4,7 +4,7 @@
 # This code is licensed under the GNU GPL-3.0-only license
 # https://www.gnu.org/licenses/gpl-3.0.html
 
-import threading, asyncio
+import threading, asyncio, re
 
 from disco import miami_disco
 from irc   import miami
@@ -13,7 +13,17 @@ async def irc_react(self, sender, contents):
 	# IRC -> Discord
 	channel_id = int(conf["BOT"]["DISCOCHAN"])
 	channel = dis.get_channel(channel_id)
-	asyncio.run_coroutine_threadsafe(channel.send(f"{sender}: {contents}"), disco_loop)
+	contents = contents.replace("@everyone", "@everypony") # fix @everyone and
+	contents = contents.replace("@here", "@there")         # @here exploit
+	mentions = re.findall("[a-zA-Z0-9]{4,32}\#[0-9]{4}", contents)
+	if mentions:
+		guild = channel.guild
+		for mention in mentions:
+			member = guild.get_member_named(mention)
+			if member == None: continue
+			contents = contents.replace(mention, member.mention)
+			
+	asyncio.run_coroutine_threadsafe(channel.send(f"**{sender}**: {contents}"), disco_loop)
 	
 async def dis_react(self, message):
 	# Discord -> IRC
@@ -24,6 +34,9 @@ async def dis_react(self, message):
 		contents += f" {attachment.url}"
 	if len(contents) > 490:
 		contents = contents[:487] + "..."
+	contents = contents.replace("\n", " ") # remove newlines
+	for mentioned_member in message.mentions:
+		contents = contents.replace(mentioned_member.mention, f"@{mentioned_member.display_name}#{mentioned_member.discriminator}")
 	if sender == conf["BOT"]["DISCONAME"]: return
 	irc.send_message(conf["SERVER"]["CHANNEL"], f"{sender}: {contents}")
 
