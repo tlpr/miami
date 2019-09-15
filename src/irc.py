@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 # The Las Pegasus Radio (https://github.com/tlpr)
 # This code is licensed under the GNU GPL-3.0-only license
@@ -11,7 +12,7 @@ class miami ():
 	def __init__(self):
 		self.reload_configuration_ini()
 		self.irc_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		if self.config["SERVER"]["SSL"]:
+		if int(self.config["SERVER"]["SSL"]):
 			self.irc_sock = ssl.wrap_socket(
 				self.irc_sock,
 				ssl_version=ssl.PROTOCOL_TLS,
@@ -104,10 +105,24 @@ class miami ():
 		# Loop to receive information and keep the connection alive.
 		try:
 			while True:
-				await asyncio.sleep(2)
-				irc_message = self.irc_sock.recv(2048).decode("UTF-8")
-				irc_message = irc_message.strip("nr")
+				await asyncio.sleep(1)
+				irc_message_encoded = self.irc_sock.recv(4096)
+				accepted_encodings = ["UTF-8", "ISO-8859-1", "CP1251"]
+				decode_successed = False
+
+				for encoding in accepted_encodings:
+					try:
+						irc_message = irc_message_encoded.decode(encoding = encoding, errors="strict").strip("nr")
+						decode_successed = True
+						#self.console_out_debug(f"Using encoding {encoding}")
+						break
+					except UnicodeDecodeError:
+						pass
 				
+				if not decode_successed:
+					self.console_out_debug("Could not decode message. Skipping it.")
+					continue
+		
 				if irc_message.find("PRIVMSG") != -1:
 					sender   = irc_message.split("!", 1)[0][1:]
 					contents = irc_message.split("PRIVMSG", 1)[1].split(":", 1)[1]
@@ -115,6 +130,7 @@ class miami ():
 					
 				elif irc_message.find("PING :") != -1:
 					self.pong()
+
 		except (KeyboardInterrupt, SystemExit):
 			self.disconnect()
 				
