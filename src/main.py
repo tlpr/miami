@@ -15,7 +15,7 @@ async def irc_react(self, sender, contents):
 	channel = dis.get_channel(channel_id)
 	contents = contents.replace("@everyone", "@everypony") # fix @everyone and
 	contents = contents.replace("@here", "@there")         # @here exploit
-	mentions = re.findall("[a-zA-Z0-9]{4,32}\#[0-9]{4}", contents)
+	mentions = re.findall("\w{4,32}\#[0-9]{4}", contents)
 	if mentions:
 		guild = channel.guild
 		for mention in mentions:
@@ -25,7 +25,7 @@ async def irc_react(self, sender, contents):
 			
 	asyncio.run_coroutine_threadsafe(channel.send(f"**{sender}**: {contents}"), disco_loop)
 	
-async def dis_react(self, message):
+async def dis_react(self, message, edited=False):
 	# Discord -> IRC
 	if not message.channel.id == int(conf["BOT"]["DISCOCHAN"]): return # ignore if message comes from different channel
 	sender = message.author.nick if message.author.nick != None else message.author.name
@@ -38,7 +38,8 @@ async def dis_react(self, message):
 	for mentioned_member in message.mentions:
 		contents = contents.replace(mentioned_member.mention, f"@{mentioned_member.display_name}#{mentioned_member.discriminator}")
 	if sender == conf["BOT"]["DISCONAME"]: return
-	irc.send_message(conf["SERVER"]["CHANNEL"], f"{sender}: {contents}")
+	edited = " (edited)" if edited else ""
+	irc.send_message(conf["SERVER"]["CHANNEL"], f"{sender}{edited}: {contents}")
 
 miami.react_on_message = irc_react
 miami_disco.on_message = dis_react

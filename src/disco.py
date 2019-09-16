@@ -5,6 +5,7 @@
 # https://www.gnu.org/licenses/gpl-3.0.html
 
 import discord, asyncio, configparser
+from datetime import datetime
 
 class miami_disco (discord.Client):
 	
@@ -28,4 +29,14 @@ class miami_disco (discord.Client):
 	
 	async def on_ready(self):
 		self.console_out_debug("Logged in.")
+
+	async def on_message(self, message, edited=False):
+		pass
+
+	async def on_message_edit(self, old_message, new_message):
+		if old_message.pinned: return # ignore pinned messages
+		if (datetime.timestamp(old_message.created_at) + 3600) < datetime.timestamp(new_message.edited_at):
+			return # do not send edited message if the original message
+			       # is older than a hour.
+		await self.on_message(new_message, edited=True)
 
