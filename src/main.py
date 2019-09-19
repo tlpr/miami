@@ -15,6 +15,15 @@ cmd = command()
 
 async def irc_react(self, sender, contents):
 	# IRC -> Discord
+	if (contents.startswith( conf["BOT"]["CMDPREFIX"] )):
+		response = cmd.execute(contents)
+		if ( "\n" in response ):
+			lines = response.split("\n")
+			for line in lines:
+				irc.send_message(conf["SERVER"]["CHANNEL"], line)
+		else:
+			irc.send_message(conf["SERVER"]["CHANNEL"], response)
+		return
 	channel_id = int(conf["BOT"]["DISCOCHAN"])
 	channel = dis.get_channel(channel_id)
 	contents = contents.replace("@everyone", "@everypony") # fix @everyone and
@@ -37,7 +46,8 @@ async def dis_react(self, message, edited=False):
 
 	# Handle commands
 	if message.content.startswith ( conf["BOT"]["CMDPREFIX"] ):
-		cmd.execute(message);
+		asyncio.run_coroutine_threadsafe(message.channel.send(cmd.execute(message)), disco_loop)
+		return
 		
 	sender = message.author.nick if message.author.nick != None else message.author.name
 	contents = message.content
