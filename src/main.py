@@ -6,8 +6,12 @@
 
 import threading, asyncio, re
 
-from disco import miami_disco
-from irc   import miami
+from disco   import miami_disco
+from irc     import miami
+from handler import command
+
+# Load plugins
+cmd = command()
 
 async def irc_react(self, sender, contents):
 	# IRC -> Discord
@@ -27,7 +31,14 @@ async def irc_react(self, sender, contents):
 	
 async def dis_react(self, message, edited=False):
 	# Discord -> IRC
-	if not message.channel.id == int(conf["BOT"]["DISCOCHAN"]): return # ignore if message comes from different channel
+
+	# Ignore if message comes from different channel
+	if not message.channel.id == int(conf["BOT"]["DISCOCHAN"]): return
+
+	# Handle commands
+	if message.content.startswith ( conf["BOT"]["CMDPREFIX"] ):
+		cmd.execute(message);
+		
 	sender = message.author.nick if message.author.nick != None else message.author.name
 	contents = message.content
 	for attachment in message.attachments:
